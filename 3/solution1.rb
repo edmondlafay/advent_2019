@@ -48,62 +48,52 @@ def print_cables(paths)
       minY = coord[1] if coord[1]<minY
     end; 0
   end; 0
+  width = maxX+minX.abs+1
+  height = maxY+minY.abs+1
 
-  arrayOfCoords = []
+  arrayOfCoordsA = []
+  arrayOfCoordsB = []
   paths.each_with_index do |coords, i|
     coords.each do |coord|
-      arrayOfCoords.push [i, coord[0], coord[1]]
+      arrayOfCoordsA.push [i, coord[0], coord[1]] if i == 0
+      arrayOfCoordsB.push [i, coord[0], coord[1]] if i == 1
     end; 0
   end; 0
 
-  puts "frame size : #{maxX+minX.abs+1} #{maxY+minY.abs+1}"
-  if maxX+minX.abs+1 > 1000 or maxY+minY.abs+1 >800 
-    puts "SIZE TO BIG, IT'S GONNA BLOW!"
-    return
+  coef = 1
+  if width>1080 or height>800
+    coef = [1080.0/width, 800.0/height].min
+    puts [width/1080.0, height/800.0]
+  elsif width<1080 or height<800
+    coef = [1080/width, 800/height].max
   end
-  set title: "Central Port", width: maxX+minX.abs+3, height: maxY+minY.abs+3
+
+  puts "frame size : #{(width*coef).to_i} #{(height*coef).to_i} (coef #{coef})"
+  set title: "Central Port", width: ((width+3)*coef).to_i, height: ((height+3)*coef).to_i
   tick = 0
   advence = 0
   colors = ['blue', 'red']
   update do
-    if tick % 3 == 0 and advence < arrayOfCoords.length
-      path, x, y = arrayOfCoords[advence]
+    if (coef<1 or tick%3==0)
+      if advence < arrayOfCoordsA.length
+        path, x, y = arrayOfCoordsA[advence]
+        Square.new(x: ((x+minX.abs+1)*coef).to_i, y: ((y+minY.abs+1)*coef).to_i, z: path,
+          size: [1, coef].max, color: colors[path % colors.length])
+      end
+      if advence < arrayOfCoordsB.length
+        path, x, y = arrayOfCoordsB[advence]
+        Square.new(x: ((x+minX.abs+1)*coef).to_i, y: ((y+minY.abs+1)*coef).to_i, z: path,
+          size: [1, coef].max, color: colors[path % colors.length])
+      end
       advence += 1
-      Square.new(
-        x: x+minX.abs+1, y: y+minY.abs+1,
-        size: 1,
-        color: colors[path % colors.length],
-        z: path
-      )
     end
     tick += 1
   end
   show
-
-  # lines = []
-  # (maxY+minY.abs+1).times do |i|
-  #   line = []
-  #   (maxX+minX.abs+1).times{|j| line.push('.')}
-  #   lines.push(line)
-  # end
-  # paths.each_with_index do |coords, i|
-  #   coords.each do |coord|
-  #     if lines[coord[1]+minY.abs][coord[0]+minX.abs] == '.'
-  #       lines[coord[1]+minY.abs][coord[0]+minX.abs] = i
-  #     else
-  #       lines[coord[1]+minY.abs][coord[0]+minX.abs] = 'X'
-  #     end
-  #     newpage = ''
-  #     (maxX+minX.abs+10).times{|j| newpage << "\n"}
-  #     puts newpage
-  #     puts "#{lines.map{|line| line.join(' ')}.join("\n")}"
-  #     sleep(0.1)
-  #   end; 0
-  # end; 0
 end
 
-paths = buildCoords(test_input); 0
-#paths = buildCoords(File.read("input.txt")) ; 0
+#paths = buildCoords(test_input); 0
+paths = buildCoords(File.read("input.txt")); 0
 res = pathsIntersections(paths[0],paths[1])
 finish = Time.now
 puts "RESULT1 #{res} (in #{finish - start} seconds)"
