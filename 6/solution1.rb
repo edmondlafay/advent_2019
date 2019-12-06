@@ -72,5 +72,5 @@ santaPath = reverse_path(known_planets, known_planets['SAN'])['SAN']
 comonPath = stringsCommonStart(youPath, santaPath)
 youPath.slice! comonPath
 santaPath.slice! comonPath
-puts youPath.count(')')+santaPath.count(')')
+puts "Fastest routes: #{youPath.count(')')+santaPath.count(')')}"
 

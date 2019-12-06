@@ -115,9 +115,9 @@ def print_cables_segments(paths)
       advence += 1
       if advence == [paths[0].length, paths[1].length].max
         closest = intersectShapes[intersectShapes.keys.min]
+        
         coin = Sprite.new(
-          'coin.png', clip_width: 84, time: 150, loop: true, width: 2 * (coef + 5), height: 2 * (coef + 5), z: 200,
-          x: ((closest[x]+minX)*coef).to_i - (coef + 5), y: ((closest[:y]+minY)*coef).to_i - (coef + 5)
+          'coin.png', clip_width: 84, time: 150, loop: true, width: 2 * (coef + 5), height: 2 * (coef + 5), z: 200, x: closest.x, y: closest.y
         )
         coin.play
       end
