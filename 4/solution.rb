@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'set'
 input = "134564-585159"
 

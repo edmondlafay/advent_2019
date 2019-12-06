@@ -1,7 +1,7 @@
+#!/usr/bin/env ruby
 require 'ruby2d'
 require 'set'
 test_input = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"
-test output = 159
 start = Time.now
 
 def buildCoords(input)
