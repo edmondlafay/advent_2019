@@ -6,7 +6,6 @@ import (
   "strings"
   "strconv"
   "io/ioutil"
-  "time"
 )
 
 func check(e error) {
@@ -85,7 +84,7 @@ func get_params(list []int, i int, j int, modes int) int {
   }
 }
 
-func compute(input chan int, output chan int, number int) {
+func compute(input chan int, output chan int, finished chan int, number int) {
   file, err := ioutil.ReadFile("input.txt")
   check(err)
   memory := ArrayStoArrayI(strings.Split(string(file), ","))
@@ -138,6 +137,7 @@ func compute(input chan int, output chan int, number int) {
         i += 4
       case 99:
         fmt.Printf("%d - HALTED\n", number)
+        finished <- 1
         return
       default:
         fmt.Printf("Error: compute has an invalid action %d.\n", action)
@@ -153,18 +153,21 @@ func main() {
     var chans = [5]chan int {
       make(chan int), make(chan int), make(chan int), make(chan int), make(chan int),
     }
+    finished := make(chan int, 4)
     fmt.Printf("test phase: %v\n", string(phase))
     for _, ampli := range amplis {
       give_phase, err := strconv.Atoi(string(string(phase)[ampli]))
       check(err)
       fmt.Printf("amplis : %d, phase %d \n", ampli, give_phase)
-      go compute(chans[ampli], chans[(ampli+1)%len(amplis)], ampli)
+      go compute(chans[ampli], chans[(ampli+1)%len(amplis)], finished, ampli)
       chans[ampli] <- give_phase
     }
     chans[0] <- 0
-    var tmp_max int
-    time.Sleep(100 * time.Millisecond)
-    tmp_max = <- chans[0]
+    <- finished // wait A to finish
+    <- finished // wait B to finish
+    <- finished // wait C to finish
+    <- finished // wait D to finish
+    tmp_max := <- chans[0]
     fmt.Printf("test phase %v result: %d\n", string(phase), max)
     if max<tmp_max {max=tmp_max}
   })

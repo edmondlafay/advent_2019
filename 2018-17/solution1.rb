@@ -5,7 +5,7 @@ input = File.read("input.txt")
 def input_parse(input)
   list_coords = []
   height = 0
-  xMin, xMax = [500, 0]
+  xMin, xMax, yMin = [500, 0, 500]
   input.split("\n").each do |com_coords|
     if com_coords[0]=='x'
       x_raw, y_raw = com_coords.split(",")
@@ -108,11 +108,17 @@ def update_drawing(drawing)
         end
       end
     end
-    unless was_updated
-      puts "#{"\n"*100}#{drawing.join("\n")}"
-      return count_water
-    end
+    return [drawing, count_water] unless was_updated
   end
 end
 
-puts "RESULT #{update_drawing(input_parse(input))}"
+drawing, count_water = update_drawing(input_parse(input))
+puts "#{"\n"*100}"
+persistant_water = 0
+drawing.each_with_index do |line, i|
+  count = line.scan(/[~]/).count
+  puts "#{line} #{i+1} (#{count} water)"
+  persistant_water+=count
+end
+
+puts "RESULT #{persistant_water}/#{count_water}"
