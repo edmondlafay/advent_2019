@@ -27,37 +27,24 @@ func ArrayStoArrayI(t []string) []int {
 func intPermutations(array []int) [][]int {
   var res [][]int
   if len(array)<=1 {
-    return append(res, array)
+    tmp := make([]int, 1, 1)
+    copy(tmp, array)
+    return append(res, tmp)
   } else {
     sub_permutation := intPermutations(array[1:])
     for j:=0; j<len(sub_permutation); j++ {
       for i:=0; i<len(sub_permutation[j]); i++ {
-        tmp := append(sub_permutation[j], 0)
+        tmp := make([]int, len(array), len(array))
+        copy(tmp, sub_permutation[j])
+        tmp = append(tmp, 0)
         copy(tmp[i+1:], tmp[i:])
         tmp[i] = array[0]
-        res = append(res, tmp)
+        res = append(res, tmp[0:len(array)])
       }
       res = append(res, append(sub_permutation[j], array[0]))
     }
   }
   return res
-}
-
-func Perm(a []rune, f func([]rune)) {
-  perm(a, f, 0)
-}
-
-func perm(a []rune, f func([]rune), i int) {
-  if i > len(a) {
-      f(a)
-      return
-  }
-  perm(a, f, i+1)
-  for j := i + 1; j < len(a); j++ {
-      a[i], a[j] = a[j], a[i]
-      perm(a, f, i+1)
-      a[i], a[j] = a[j], a[i]
-  }
 }
 
 func reverse_int(n int) int {
@@ -148,19 +135,19 @@ func compute(input chan int, output chan int, finished chan int, number int) {
 
 func main() {
   amplis := [5]int{0, 1, 2, 3, 4}
+  permutations := intPermutations(amplis[:5])
+
   var max int
-  Perm([]rune("56789"), func(phase []rune) {
+  for _, phase := range permutations {
     var chans = [5]chan int {
       make(chan int), make(chan int), make(chan int), make(chan int), make(chan int),
     }
     finished := make(chan int, 4)
-    fmt.Printf("test phase: %v\n", string(phase))
+    fmt.Printf("test phase: %v\n", phase)
     for _, ampli := range amplis {
-      give_phase, err := strconv.Atoi(string(string(phase)[ampli]))
-      check(err)
-      fmt.Printf("amplis : %d, phase %d \n", ampli, give_phase)
+      fmt.Printf("amplis : %d, phase %d \n", ampli, phase[ampli])
       go compute(chans[ampli], chans[(ampli+1)%len(amplis)], finished, ampli)
-      chans[ampli] <- give_phase
+      chans[ampli] <- phase[ampli]
     }
     chans[0] <- 0
     <- finished // wait A to finish
@@ -168,8 +155,8 @@ func main() {
     <- finished // wait C to finish
     <- finished // wait D to finish
     tmp_max := <- chans[0]
-    fmt.Printf("test phase %v result: %d\n", string(phase), max)
+    fmt.Printf("test phase %v result: %d\n", phase, tmp_max)
     if max<tmp_max {max=tmp_max}
-  })
+  }
   fmt.Printf("solution is %d\n", max)
 }
