@@ -154,7 +154,7 @@ func main() {
     <- finished // wait B to finish
     <- finished // wait C to finish
     <- finished // wait D to finish
-    tmp_max := <- chans[0]
+    tmp_max := <- chans[0] // read output of E
     fmt.Printf("test phase %v result: %d\n", phase, tmp_max)
     if max<tmp_max {max=tmp_max}
   }
