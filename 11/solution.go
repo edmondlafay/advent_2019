@@ -8,12 +8,10 @@ import (
   "io/ioutil"
 )
 
-const ADD int = 1
+const ADD, MULTIPLY, GET, PUT, JUMPIF, JUMPUNLESS, LOWERTHAN, EQUALTO, CHANGEREL, HALT int = 1, 2, 3, 4, 5, 6, 7, 8, 9, 99
 
 func check(e error) {
-  if e != nil {
-      panic(e)
-  }
+  if e != nil { panic(e) }
 }
 
 func ArrayStoArrayI(t []string) []int {
@@ -28,38 +26,23 @@ func ArrayStoArrayI(t []string) []int {
   return t2
 }
 
-func intPermutations(array []int) [][]int {
-  var res [][]int
-  if len(array)==1 {
-    return append(res, []int{array[0]})
-  } else {
-    sub_permutation := intPermutations(array[1:])
-    for j:=0; j<len(sub_permutation); j++ {
-      for i:=0; i<len(sub_permutation[j]); i++ {
-        tmp := make([]int, len(array), len(array))
-        copy(tmp, sub_permutation[j])
-        copy(tmp[i+1:], tmp[i:])
-        tmp[i] = array[0]
-        res = append(res, tmp)
-      }
-      res = append(res, append(sub_permutation[j], array[0]))
+func get_params(memory map[int]int, i int, length int, modes int, relative_base int) []int {
+  params := make([]int, 0)
+  for j:=0; j < length-1; j++ {
+    mode := (modes/int(math.Pow10(j)))%10
+    absolute, direct, relative := 0, 1, 2
+    switch mode {
+      case absolute: params = append(params, memory[i+j+1])
+      case direct:   params = append(params, i+j+1)
+      case relative: params = append(params, relative_base+memory[i+j+1])
+      default: panic(fmt.Sprintf("Error: compute has an invalid mode %d (modes: %d).\n", mode, modes))
     }
   }
-  return res
+  return params
 }
 
-func get_params(memory map[int]int, i int, j int, modes int, relative int) int {
-  mode := (modes/int(math.Pow10(j)))%10
-  switch mode {
-    case 0: return memory[i+j+1]
-    case 1: return i+j+1
-    case 2: return relative+memory[i+j+1]
-    default: panic(fmt.Sprintf("Error: compute has an invalid mode %d (modes: %d).\n", mode, modes))
-  }
-}
-
-func compute_debug_prints(memory map[int]int, action int, modes int, params []int) {
-  fmt.Printf("action %d,  mode %d, params: ", action, modes)
+func compute_debug_prints(memory map[int]int, action int, modes int, params []int, relative_base int) {
+  fmt.Printf("action %d,  mode %d, base %d, params: ", action, modes, relative_base)
   for _, param := range params { fmt.Printf("%d(%d) ", param, memory[param]) }
   fmt.Println()
   for k:=0;k<len(memory); k++ { fmt.Printf("%d ",memory[k]) }
@@ -71,64 +54,61 @@ func compute(input_data []int, input chan int, output chan int, number int) {
   for memory_position, memory_order := range input_data {
     memory[memory_position] = memory_order
   }
-  relative_base, i := 0, 0
+  relative_base, i, length := 0, 0, 0
   for i < len(memory) {
     action, modes := memory[i]%100 , memory[i]/100
     var params []int
     switch action {
       case ADD:
-        for j:=0; j < 3; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
-        }
+        length = 4
+        params = get_params(memory, i, length, modes, relative_base)
         memory[params[2]] = memory[params[1]] + memory[params[0]]
-        i += 4
-      case 2:
-        for j:=0; j < 3; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
-        }
+      case MULTIPLY:
+        length = 4
+        params = get_params(memory, i, length, modes, relative_base)
         memory[params[2]] = memory[params[1]] * memory[params[0]]
-        i += 4
-      case 3:
-        params = append(params, get_params(memory, i, 0, modes, relative_base))
+      case GET:
+        length = 2
+        params = get_params(memory, i, length, modes, relative_base)
         memory[params[0]] = <-input
-        i += 2
-      case 4:
-        params = append(params, get_params(memory, i, 0, modes, relative_base))
+      case PUT:
+        length = 2
+        params = get_params(memory, i, length, modes, relative_base)
         output <- memory[params[0]]
-        i += 2
-      case 5:
-        for j:=0; j < 2; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
+      case JUMPIF:
+        length = 3
+        params = get_params(memory, i, length, modes, relative_base)
+        if memory[params[0]]!=0 { 
+          i=memory[params[1]]
+          continue
         }
-        if memory[params[0]]!=0 { i=memory[params[1]] } else { i+=3 }
-      case 6:
-        for j:=0; j < 2; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
+      case JUMPUNLESS:
+        length = 3
+        params = get_params(memory, i, length, modes, relative_base)
+        if memory[params[0]]==0 {
+          i=memory[params[1]]
+          continue
         }
-        if memory[params[0]]==0 { i=memory[params[1]] } else { i+=3 }
-      case 7:
-        for j:=0; j < 3; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
-        }
+      case LOWERTHAN:
+        length = 4
+        params = get_params(memory, i, length, modes, relative_base)
         if memory[params[0]]<memory[params[1]] { memory[params[2]]=1 } else { memory[params[2]]=0 }
-        i += 4
-      case 8:
-        for j:=0; j < 3; j++ {
-          params = append(params, get_params(memory, i, j, modes, relative_base))
-        }
+      case EQUALTO:
+        length = 4
+        params = get_params(memory, i, length, modes, relative_base)
         if memory[params[0]]==memory[params[1]] { memory[params[2]]=1 } else { memory[params[2]]=0 }
-        i += 4
-      case 9:
-        params = append(params, get_params(memory, i, 0, modes, relative_base))
+      case CHANGEREL:
+        length = 2
+        params = get_params(memory, i, length, modes, relative_base)
         relative_base += memory[params[0]]
-        i += 2
-      case 99:
+      case HALT:
         close(output)
         return
       default:
         panic(fmt.Sprintf("Error: compute has an invalid action %d.\n", action))
     }
-    //compute_debug_prints(memory map[int]int, action int, modes int, params []int)
+    i += length
+    //compute_debug_prints(memory, action, modes, params, relative_base)
   }
 }
 
@@ -185,13 +165,80 @@ func main() {
   tests()
   file, err := ioutil.ReadFile("input.txt")
   check(err)
-  input_chan := make(chan int)
+  canvas := make(map[[2]int]int)
+  x,y,minX,maxX,minY,maxY:=0,0,0,0,0,0
+  input_chan := make(chan int, 2)
   output_chan := make(chan int)
   go compute(ArrayStoArrayI(strings.Split(string(file), ",")), input_chan, output_chan, 0)
-  input_chan <- 2
-  var result int
+  canvas[[2]int{x,y}] = 1
+  input_chan <- 1
+  facing := "up"
+  left, right := 0,1
+  paintOrder := true
   for output := range output_chan {
-    result = output
+    if paintOrder {
+      color := output
+      canvas[[2]int{x,y}] = color
+      paintOrder = false
+    } else {
+      direction := output
+      if direction == left {
+        switch facing {
+          case "up": 
+            facing = "left"
+            x--
+          case "left":
+            facing = "down"
+            y--
+          case "down":
+            facing = "right"
+            x++
+          case "right":
+            facing = "up"
+            y++
+        }
+      } else if direction == right {
+        switch facing {
+          case "up": 
+            facing = "right"
+            x++
+          case "left":
+            facing = "up"
+            y++
+          case "down":
+            facing = "left"
+            x--
+          case "right":
+            facing = "down"
+            y--
+        }
+      } else {
+        panic(fmt.Sprintf("Error: bad direction %d.\n", direction))
+      }
+      input_chan <- canvas[[2]int{x,y}]
+      if x<minX {minX=x}
+      if y<minY {minY=y}
+      if x>maxX {maxX=x}
+      if y>maxY {maxY=y}
+      paintOrder = true
+    }
   }
-  fmt.Printf("RESULT: %d\n", result)
+  fmt.Printf("RESULT 1: %d\n\n", len(canvas))
+  minY = int(math.Abs(float64(minY)))
+  minX = int(math.Abs(float64(minX)))
+  result := make([][]int, 0)
+  for i:=0;i<maxY+minY+1;i++ {
+    line := make([]int, maxX+minX+1)
+    result = append(result, line)
+  }
+  for coords, color := range canvas {
+    result[minY+coords[1]][minX+coords[0]] = color
+  }
+  fmt.Printf("RESULT 2:\n")
+  for y:=len(result)-1; y>=0;y--{
+    for _,char := range result[y] {
+      if char==1 { fmt.Printf("#") } else { fmt.Printf(" ") }
+    }
+    fmt.Printf("\n")
+  }
 }
