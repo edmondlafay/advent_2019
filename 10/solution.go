@@ -95,60 +95,63 @@ func (safeLock *Safe) checkVisibility(lines []string, asteroids []Asteroid, a *A
 
 func main() {
   start := time.Now()
-  file, err := ioutil.ReadFile("input.txt")
-  check(err)
-  lines := strings.Split(string(file), "\n")
-  //lines := strings.Split(".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##", "\n")
-
-  // build asteroids array
-  asteroids := []Asteroid{}
-  for ya, line := range lines {
-    for xa, data_point := range line {
-      if data_point=='#' {
-        asteroids = append(asteroids, Asteroid{x: xa, y: ya, asteroid_seen: make(map[float64]Asteroid)})
+  for p:=0;p<1000;p++{
+    file, err := ioutil.ReadFile("input.txt")
+    check(err)
+    lines := strings.Split(string(file), "\n")
+    //lines := strings.Split(".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##", "\n")
+  
+    // build asteroids array
+    asteroids := []Asteroid{}
+    for ya, line := range lines {
+      for xa, data_point := range line {
+        if data_point=='#' {
+          asteroids = append(asteroids, Asteroid{x: xa, y: ya, asteroid_seen: make(map[float64]Asteroid)})
+        }
       }
     }
-  }
-
-  routines := 0
-  output_chan := make(chan Asteroid)
-  for i, _ := range asteroids {
-    safeLock := Safe{lock: sync.Mutex{}}
-    go safeLock.checkVisibility(lines, asteroids, &asteroids[i], output_chan)
-    routines++
-  }
-
-  max := 0
-  var base Asteroid
-  for i:=0;i<routines;i++{ 
-    asteroid := <-output_chan
-    if max < len(asteroid.asteroid_seen) {
-      max = len(asteroid.asteroid_seen)
-      base = asteroid
+  
+    routines := 0
+    output_chan := make(chan Asteroid)
+    for i, _ := range asteroids {
+      safeLock := Safe{lock: sync.Mutex{}}
+      go safeLock.checkVisibility(lines, asteroids, &asteroids[i], output_chan)
+      routines++
     }
-  } 
-  fmt.Printf("Solution 1: asteroid %d,%d sees %d other\n", base.x, base.y, max)
-
-  // sort asteroid by angle
-  lineOfsight := []Asteroid{}
-  for _, asteroid := range base.asteroid_seen {
-    lineOfsight = append(lineOfsight, asteroid)
+  
+    max := 0
+    var base Asteroid
+    for i:=0;i<routines;i++{ 
+      asteroid := <-output_chan
+      if max < len(asteroid.asteroid_seen) {
+        max = len(asteroid.asteroid_seen)
+        base = asteroid
+      }
+    } 
+    //fmt.Printf("Solution 1: asteroid %d,%d sees %d other\n", base.x, base.y, max)
+  
+    // sort asteroid by angle
+    lineOfsight := []Asteroid{}
+    for _, asteroid := range base.asteroid_seen {
+      lineOfsight = append(lineOfsight, asteroid)
+    }
+    sort.Slice(lineOfsight, func(i, j int) bool {
+      return lineOfsight[i].angleScore < lineOfsight[j].angleScore
+    })
+  
+    //fmt.Printf("Solution 2: %d\n", lineOfsight[198].x*100+lineOfsight[198].y)
   }
-  sort.Slice(lineOfsight, func(i, j int) bool {
-		return lineOfsight[i].angleScore < lineOfsight[j].angleScore
-  })
+  elapsed := time.Since(start)
 
-  fmt.Printf("Solution 2: %d\n", lineOfsight[198].x*100+lineOfsight[198].y)
-  time := time.Now()
-  fmt.Printf("time: %d\n", time.Sub(start))
+  fmt.Printf("time: %s\n", elapsed/1000)
 
   // build visuals
-  t := make([][]string, 0)
-  for _, line := range lines { t = append(t, strings.Split(line, "")) }
-  t[base.y][base.x] = "@"
-  letters := "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
-  for i, asteroid := range lineOfsight {
-    if i<len(letters) { t[asteroid.y][asteroid.x] = string(letters[i]) }
-  }
-  for i, line := range t { fmt.Printf("%d%v\n", i%10, line) }
+  // t := make([][]string, 0)
+  // for _, line := range lines { t = append(t, strings.Split(line, "")) }
+  // t[base.y][base.x] = "@"
+  // letters := "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
+  // for i, asteroid := range lineOfsight {
+  //   if i<len(letters) { t[asteroid.y][asteroid.x] = string(letters[i]) }
+  // }
+  // for i, line := range t { fmt.Printf("%d%v\n", i%10, line) }
 }
